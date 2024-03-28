@@ -258,6 +258,10 @@ impl Engine {
         &self.network
     }
 
+    pub fn storage(&self) -> &Arc<Storage> {
+        &self.storage
+    }
+
     pub async fn trigger_compaction(&self) {
         self.db.trigger_compaction().await;
     }
