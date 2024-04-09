@@ -262,6 +262,11 @@ impl Engine {
         self.db.trigger_compaction().await;
     }
 
+    pub fn storage() -> Arc<Storage> {
+        &self.storage
+    }
+}
+
     async fn prepare_blocks_gc(self: &Arc<Self>) -> Result<()> {
         let blocks_gc_state = match &self.blocks_gc_state {
             Some(state) => state,
