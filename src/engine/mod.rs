@@ -23,7 +23,7 @@ use crate::network::*;
 use crate::storage::*;
 use crate::utils::*;
 
-use self::complex_operations::*;
+pub use self::complex_operations::*;
 pub use self::downloader::*;
 pub use self::node_rpc::*;
 

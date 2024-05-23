@@ -19,6 +19,7 @@ mod migrations;
 
 pub struct Db {
     pub archives: Table<tables::Archives>,
+    pub archive_index: Table<tables::ArchiveIndex>,
     pub block_handles: Table<tables::BlockHandles>,
     pub key_blocks: Table<tables::KeyBlocks>,
     pub package_entries: Table<tables::PackageEntries>,
@@ -94,6 +95,7 @@ impl Db {
                 // opts.set_stats_dump_period_sec(600);
             })
             .with_table::<tables::Archives>()
+            .with_table::<tables::ArchiveIndex>()
             .with_table::<tables::BlockHandles>()
             .with_table::<tables::KeyBlocks>()
             .with_table::<tables::ShardStates>()
@@ -111,6 +113,7 @@ impl Db {
 
         let this = Arc::new(Self {
             archives: inner.instantiate_table(),
+            archive_index: inner.instantiate_table(),
             block_handles: inner.instantiate_table(),
             key_blocks: inner.instantiate_table(),
             package_entries: inner.instantiate_table(),
@@ -239,6 +242,7 @@ impl Db {
         let stats = thread::scope(|s| -> Result<Vec<DiskUsageInfo>> {
             stats!(s,
                 archives => tables::Archives,
+                archive_index => tables::ArchiveIndex,
                 block_handles => tables::BlockHandles,
                 key_blocks => tables::KeyBlocks,
                 package_entries => tables::PackageEntries,

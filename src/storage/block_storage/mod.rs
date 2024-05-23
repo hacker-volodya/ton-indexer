@@ -6,7 +6,7 @@
 /// - removed all temporary unused code
 ///
 use std::borrow::Borrow;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::convert::TryInto;
 use std::hash::Hash;
 use std::ops::{Bound, RangeBounds};
@@ -15,6 +15,8 @@ use std::time::Instant;
 
 use anyhow::{Context, Result};
 use parking_lot::RwLock;
+use ton_block::{BlockIdExt, ShardIdent};
+use ton_types::ByteOrderRead;
 
 use super::block_handle_storage::{BlockHandleStorage, HandleCreationStatus};
 use super::models::*;
@@ -22,10 +24,66 @@ use crate::config::BlocksGcKind;
 use crate::db::*;
 use crate::utils::*;
 
+pub struct ShardIndex {
+    seqno_index: BTreeMap<u32, u32>,
+    lt_index: BTreeMap<u64, u32>,
+    utime_index: BTreeMap<u32, u32>,
+}
+
+impl ShardIndex {
+    pub fn find_archive_id_by_seqno(&self, seqno: u32) -> Option<u32> {
+        self.seqno_index.range(..=seqno).last().map(|(_, id)| *id)
+    }
+
+    pub fn find_archive_id_by_lt(&self, lt: u64) -> Option<u32> {
+        self.lt_index.range(..=lt).last().map(|(_, id)| *id)
+    }
+
+    pub fn find_archive_id_by_utime(&self, utime: u32) -> Option<u32> {
+        self.utime_index.range(..=utime).last().map(|(_, id)| *id)
+    }
+}
+
+pub struct ArchiveIndexData {
+    pub shard: ton_block::ShardIdent,
+    pub start_utime: u32,
+    pub start_seqno: u32,
+    pub start_lt: u64,
+}
+
+impl StoredValue for ArchiveIndexData {
+    const SIZE_HINT: usize = ton_block::ShardIdent::SIZE_HINT + 4 + 4 + 8;
+
+    type OnStackSlice = [u8; Self::SIZE_HINT];
+
+    fn serialize<T: StoredValueBuffer>(&self, buffer: &mut T) {
+        self.shard.serialize(buffer);
+        buffer.write_raw_slice(&self.start_utime.to_le_bytes());
+        buffer.write_raw_slice(&self.start_seqno.to_le_bytes());
+        buffer.write_raw_slice(&self.start_lt.to_le_bytes());
+    }
+
+    fn deserialize(reader: &mut &[u8]) -> Result<Self>
+    where
+        Self: Sized {
+        let shard = ton_block::ShardIdent::deserialize(reader)?;
+        let start_utime = reader.read_le_u32()?;
+        let start_seqno = reader.read_le_u32()?;
+        let start_lt = reader.read_le_u64()?;
+        Ok(Self {
+            shard,
+            start_utime,
+            start_seqno,
+            start_lt,
+        })
+    }
+}
+
 pub struct BlockStorage {
     db: Arc<Db>,
     block_handle_storage: Arc<BlockHandleStorage>,
     archive_ids: RwLock<BTreeSet<u32>>,
+    archive_index: RwLock<BTreeMap<ton_block::ShardIdent, ShardIndex>>,
 }
 
 impl BlockStorage {
@@ -34,6 +92,7 @@ impl BlockStorage {
             db,
             block_handle_storage,
             archive_ids: Default::default(),
+            archive_index: Default::default(),
         };
 
         manager.preload()?;
@@ -41,7 +100,89 @@ impl BlockStorage {
         Ok(manager)
     }
 
+    fn load_archive_index_from_disk(&self) -> Result<()> {
+        tracing::info!("Loading archive index from disk...");
+        let mut archive_index = self.archive_index.write();
+        archive_index.clear();
+        let mut iter = self.db.archive_index.raw_iterator();
+        iter.seek_to_first();
+        while let (Some(key), value) = (iter.key(), iter.value()) {
+            let archive_id = u32::from_le_bytes(key.try_into().with_context(|| format!("Invalid archive key: {}", hex::encode(key)))?);
+            tracing::debug!("Loading archive {}", archive_id);
+            if let Some(mut raw_index_data) = value {
+                while let Ok(index_data) = ArchiveIndexData::deserialize(&mut raw_index_data) {
+                    match archive_index.entry(index_data.shard) {
+                        std::collections::btree_map::Entry::Vacant(entry) => {
+                            let index = entry.insert(ShardIndex {
+                                seqno_index: Default::default(),
+                                lt_index: Default::default(),
+                                utime_index: Default::default(),
+                            });
+                            index.seqno_index.insert(index_data.start_seqno, archive_id);
+                            index.lt_index.insert(index_data.start_lt, archive_id);
+                            index.utime_index.insert(index_data.start_utime, archive_id);
+                        },
+                        std::collections::btree_map::Entry::Occupied(mut entry) => {
+                            entry.get_mut().seqno_index.insert(index_data.start_seqno, archive_id);
+                            entry.get_mut().lt_index.insert(index_data.start_lt, archive_id);
+                            entry.get_mut().utime_index.insert(index_data.start_utime, archive_id);
+                        },
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn add_archive_to_index(&self, archive_id: u32, archive_bytes: &[u8], force: bool) -> Result<()> {
+        if self.db.archive_index.contains_key(archive_id.to_le_bytes())? && !force {
+            return Ok(())
+        }
+        tracing::info!("Adding new archive {} to index", archive_id);
+        let mut reader = ArchivePackageViewReader::new(archive_bytes)?;
+        let mut start_blocks = Vec::new();
+        let mut visited_shards = HashSet::new();
+        while let Some(entry) = reader.read_next()? {
+            if let PackageEntryId::Block(block_id_ext) = PackageEntryId::from_filename(entry.name)? {
+                if visited_shards.contains(block_id_ext.shard()) {
+                    continue;
+                }
+                visited_shards.insert(*block_id_ext.shard());
+                let block_stuff = BlockStuff::deserialize_checked(block_id_ext, entry.data)?;
+                let info = block_stuff.block().read_info()?;
+                let mut index = self.archive_index.write();
+                match index.entry(*info.shard()) {
+                    std::collections::btree_map::Entry::Vacant(entry) => {
+                        let index = entry.insert(ShardIndex {
+                            seqno_index: Default::default(),
+                            lt_index: Default::default(),
+                            utime_index: Default::default(),
+                        });
+                        index.seqno_index.insert(info.seq_no(), archive_id);
+                        index.lt_index.insert(info.start_lt(), archive_id);
+                        index.utime_index.insert(info.gen_utime().as_u32(), archive_id);
+                    },
+                    std::collections::btree_map::Entry::Occupied(mut entry) => {
+                        entry.get_mut().seqno_index.insert(info.seq_no(), archive_id);
+                        entry.get_mut().lt_index.insert(info.start_lt(), archive_id);
+                        entry.get_mut().utime_index.insert(info.gen_utime().as_u32(), archive_id);
+                    },
+                }
+                ArchiveIndexData {
+                    shard: *info.shard(),
+                    start_utime: info.gen_utime().as_u32(),
+                    start_seqno: info.seq_no(),
+                    start_lt: info.start_lt(),
+                }.serialize(&mut start_blocks);
+            }
+        }
+        self.db.archive_index.insert(archive_id.to_le_bytes(), start_blocks)?;
+        Ok(())
+    }
+
     fn preload(&self) -> Result<()> {
+        self.load_archive_index_from_disk()?;
+
         fn check_archive(value: &[u8]) -> Result<(), ArchivePackageError> {
             let mut verifier = ArchivePackageVerifier::default();
             verifier.verify(value)?;
@@ -59,6 +200,11 @@ impl BlockStorage {
                     .with_context(|| format!("Invalid archive key: {}", hex::encode(key)))?,
             );
 
+            // update archive index if necessary
+            if let Some(archive_bytes) = value {
+                self.add_archive_to_index(archive_id, archive_bytes, false)?;
+            }
+
             if let Some(Err(e)) = value.map(check_archive) {
                 tracing::error!(archive_id, "failed to read archive: {e:?}")
             }
@@ -69,6 +215,74 @@ impl BlockStorage {
 
         tracing::info!("selfcheck complete");
         Ok(())
+    }
+
+    pub fn get_archive(&self, archive_id: u32) -> Result<Option<Vec<u8>>> {
+        if let Some(raw_data) = self.db.archives.get(archive_id.to_be_bytes())? {
+            return Ok(Some(raw_data.to_vec()))
+        }
+        Ok(None)
+    }
+
+    pub fn get_block_from_archives(&self, id: &BlockIdExt) -> Result<Option<Vec<u8>>> {
+        self.search_block_by_seqno(id.shard(), id.seq_no())
+    }
+
+    pub fn search_block_by_seqno(&self, shard: &ShardIdent, seqno: u32) -> Result<Option<Vec<u8>>> {
+        let archive_id = self.archive_index.read().get(shard).and_then(|shard_index| shard_index.seqno_index.get(&seqno).copied());
+        if let Some(archive_id) = archive_id {
+            if let Some(archive) = self.get_archive(archive_id)? {
+                let mut reader = ArchivePackageViewReader::new(&archive)?;
+                while let Some(entry) = reader.read_next()? {
+                    if let PackageEntryId::Block(block_id_ext) = PackageEntryId::from_filename(entry.name)? {
+                        if block_id_ext.shard() == shard && block_id_ext.seq_no() == seqno {
+                            return Ok(Some(entry.data.to_vec()))
+                        }
+                    }
+                }
+            }
+        }
+        Ok(None)
+    }
+
+    pub fn search_block_by_utime(&self, shard: &ShardIdent, utime: u32) -> Result<Option<Vec<u8>>> {
+        let archive_id = self.archive_index.read().get(shard).and_then(|shard_index| shard_index.utime_index.get(&utime).copied());
+        if let Some(archive_id) = archive_id {
+            if let Some(archive) = self.get_archive(archive_id)? {
+                let mut reader = ArchivePackageViewReader::new(&archive)?;
+                while let Some(entry) = reader.read_next()? {
+                    if let PackageEntryId::Block(block_id_ext) = PackageEntryId::from_filename(entry.name)? {
+                        if block_id_ext.shard() == shard {
+                            let block = BlockStuff::deserialize(block_id_ext, entry.data)?;
+                            if block.block().read_info()?.gen_utime().as_u32() == utime {
+                                return Ok(Some(entry.data.to_vec()))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        Ok(None)
+    }
+
+    pub fn search_block_by_lt(&self, shard: &ShardIdent, lt: u64) -> Result<Option<Vec<u8>>> {
+        let archive_id = self.archive_index.read().get(shard).and_then(|shard_index| shard_index.lt_index.get(&lt).copied());
+        if let Some(archive_id) = archive_id {
+            if let Some(archive) = self.get_archive(archive_id)? {
+                let mut reader = ArchivePackageViewReader::new(&archive)?;
+                while let Some(entry) = reader.read_next()? {
+                    if let PackageEntryId::Block(block_id_ext) = PackageEntryId::from_filename(entry.name)? {
+                        if block_id_ext.shard() == shard {
+                            let block = BlockStuff::deserialize(block_id_ext, entry.data)?;
+                            if block.block().read_info()?.start_lt() <= lt && lt <= block.block().read_info()?.end_lt() {
+                                return Ok(Some(entry.data.to_vec()))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        Ok(None)
     }
 
     pub async fn store_block_data(

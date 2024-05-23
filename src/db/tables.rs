@@ -102,6 +102,19 @@ impl ColumnFamily for ShardStates {
     }
 }
 
+/// Maps archive id to archive metadata
+/// - Key: `u32`
+/// - Value: `ton_types::UInt256`
+pub struct ArchiveIndex;
+impl ColumnFamily for ArchiveIndex {
+    const NAME: &'static str = "archive_index";
+
+    fn options(opts: &mut Options, caches: &Caches) {
+        default_block_based_table_factory(opts, caches);
+        opts.set_compression_type(DBCompressionType::Zstd);
+    }
+}
+
 /// Stores cells data
 /// - Key: `ton_types::UInt256` (cell repr hash)
 /// - Value: `StorageCell`

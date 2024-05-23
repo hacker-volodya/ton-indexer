@@ -8,7 +8,7 @@ use crate::storage::*;
 use crate::utils::*;
 
 use self::archives_stream::*;
-use self::block_maps::*;
+pub use self::block_maps::*;
 pub use self::historical_sync::*;
 
 mod archive_writers_pool;
