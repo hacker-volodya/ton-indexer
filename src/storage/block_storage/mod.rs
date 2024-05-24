@@ -152,6 +152,7 @@ impl BlockStorage {
                 entry.get_mut().utime_index.insert(info.gen_utime().as_u32(), archive_id);
             },
         }
+        tracing::info!("indexed block {:?} {}", info.shard(), info.seq_no());
         Ok(())
     }
 
@@ -526,6 +527,12 @@ impl BlockStorage {
         }
         // 5. Execute transaction
         self.db.raw().write(batch)?;
+
+        if let Some(block_data) = self.db.package_entries.get(PackageEntryId::Block(block_id.clone()).to_vec())? {
+            let block_stuff = BlockStuff::deserialize(block_id.clone(), &block_data)?;
+            let info = block_stuff.block().read_info()?;
+            self.add_block_to_index(archive_id, &info)?;
+        }
 
         // Block will be removed after blocks gc
 
