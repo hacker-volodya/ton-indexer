@@ -207,7 +207,7 @@ impl BlockStorage {
 
             // update archive index if necessary
             if let Some(archive_bytes) = value {
-                self.add_archive_to_index(archive_id, archive_bytes, false)?;
+                self.add_archive_to_index(archive_id, archive_bytes, true)?;
             }
 
             if let Some(Err(e)) = value.map(check_archive) {
