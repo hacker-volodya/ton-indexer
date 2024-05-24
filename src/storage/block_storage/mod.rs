@@ -15,7 +15,7 @@ use std::time::Instant;
 
 use anyhow::{Context, Result};
 use parking_lot::RwLock;
-use ton_block::{BlockIdExt, ShardIdent};
+use ton_block::{BlockIdExt, BlockInfo, ShardIdent};
 use ton_types::ByteOrderRead;
 
 use super::block_handle_storage::{BlockHandleStorage, HandleCreationStatus};
@@ -134,6 +134,28 @@ impl BlockStorage {
         Ok(())
     }
 
+    fn add_block_to_index(&self, archive_id: u32, info: &BlockInfo) -> Result<()> {
+        let mut index = self.archive_index.write();
+        match index.entry(*info.shard()) {
+            std::collections::btree_map::Entry::Vacant(entry) => {
+                let index = entry.insert(ShardIndex {
+                    seqno_index: Default::default(),
+                    lt_index: Default::default(),
+                    utime_index: Default::default(),
+                });
+                index.seqno_index.insert(info.seq_no(), archive_id);
+                index.lt_index.insert(info.start_lt(), archive_id);
+                index.utime_index.insert(info.gen_utime().as_u32(), archive_id);
+            },
+            std::collections::btree_map::Entry::Occupied(mut entry) => {
+                entry.get_mut().seqno_index.insert(info.seq_no(), archive_id);
+                entry.get_mut().lt_index.insert(info.start_lt(), archive_id);
+                entry.get_mut().utime_index.insert(info.gen_utime().as_u32(), archive_id);
+            },
+        }
+        Ok(())
+    }
+
     fn add_archive_to_index(&self, archive_id: u32, archive_bytes: &[u8], force: bool) -> Result<()> {
         if self.db.archive_index.contains_key(archive_id.to_le_bytes())? && !force {
             return Ok(())
@@ -150,24 +172,7 @@ impl BlockStorage {
                 visited_shards.insert(*block_id_ext.shard());
                 let block_stuff = BlockStuff::deserialize_checked(block_id_ext, entry.data)?;
                 let info = block_stuff.block().read_info()?;
-                let mut index = self.archive_index.write();
-                match index.entry(*info.shard()) {
-                    std::collections::btree_map::Entry::Vacant(entry) => {
-                        let index = entry.insert(ShardIndex {
-                            seqno_index: Default::default(),
-                            lt_index: Default::default(),
-                            utime_index: Default::default(),
-                        });
-                        index.seqno_index.insert(info.seq_no(), archive_id);
-                        index.lt_index.insert(info.start_lt(), archive_id);
-                        index.utime_index.insert(info.gen_utime().as_u32(), archive_id);
-                    },
-                    std::collections::btree_map::Entry::Occupied(mut entry) => {
-                        entry.get_mut().seqno_index.insert(info.seq_no(), archive_id);
-                        entry.get_mut().lt_index.insert(info.start_lt(), archive_id);
-                        entry.get_mut().utime_index.insert(info.gen_utime().as_u32(), archive_id);
-                    },
-                }
+                self.add_block_to_index(archive_id, &info)?;
                 ArchiveIndexData {
                     shard: *info.shard(),
                     start_utime: info.gen_utime().as_u32(),
@@ -553,6 +558,8 @@ impl BlockStorage {
         let archive_id = self.compute_archive_id(handle);
         let archive_id_bytes = archive_id.to_be_bytes();
 
+        tracing::info!("moving {block_id:?} to archive {archive_id}");
+
         let mut batch = rocksdb::WriteBatch::default();
 
         batch.merge_cf(
@@ -584,6 +591,10 @@ impl BlockStorage {
         }
 
         self.db.raw().write(batch)?;
+
+        let block_stuff = BlockStuff::deserialize(block_id.clone(), block_data)?;
+        let info = block_stuff.block().read_info()?;
+        self.add_block_to_index(archive_id, &info)?;
 
         Ok(())
     }
