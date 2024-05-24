@@ -106,30 +106,29 @@ impl BlockStorage {
         archive_index.clear();
         let mut iter = self.db.archive_index.raw_iterator();
         iter.seek_to_first();
-        while let (Some(key), value) = (iter.key(), iter.value()) {
+        while let (Some(key), Some(mut value)) = (iter.key(), iter.value()) {
             let archive_id = u32::from_le_bytes(key.try_into().with_context(|| format!("Invalid archive key: {}", hex::encode(key)))?);
             tracing::info!("Loading archive {}", archive_id);
-            if let Some(mut raw_index_data) = value {
-                while let Ok(index_data) = ArchiveIndexData::deserialize(&mut raw_index_data) {
-                    match archive_index.entry(index_data.shard) {
-                        std::collections::btree_map::Entry::Vacant(entry) => {
-                            let index = entry.insert(ShardIndex {
-                                seqno_index: Default::default(),
-                                lt_index: Default::default(),
-                                utime_index: Default::default(),
-                            });
-                            index.seqno_index.insert(index_data.start_seqno, archive_id);
-                            index.lt_index.insert(index_data.start_lt, archive_id);
-                            index.utime_index.insert(index_data.start_utime, archive_id);
-                        },
-                        std::collections::btree_map::Entry::Occupied(mut entry) => {
-                            entry.get_mut().seqno_index.insert(index_data.start_seqno, archive_id);
-                            entry.get_mut().lt_index.insert(index_data.start_lt, archive_id);
-                            entry.get_mut().utime_index.insert(index_data.start_utime, archive_id);
-                        },
-                    }
+            while let Ok(index_data) = ArchiveIndexData::deserialize(&mut value) {
+                match archive_index.entry(index_data.shard) {
+                    std::collections::btree_map::Entry::Vacant(entry) => {
+                        let index = entry.insert(ShardIndex {
+                            seqno_index: Default::default(),
+                            lt_index: Default::default(),
+                            utime_index: Default::default(),
+                        });
+                        index.seqno_index.insert(index_data.start_seqno, archive_id);
+                        index.lt_index.insert(index_data.start_lt, archive_id);
+                        index.utime_index.insert(index_data.start_utime, archive_id);
+                    },
+                    std::collections::btree_map::Entry::Occupied(mut entry) => {
+                        entry.get_mut().seqno_index.insert(index_data.start_seqno, archive_id);
+                        entry.get_mut().lt_index.insert(index_data.start_lt, archive_id);
+                        entry.get_mut().utime_index.insert(index_data.start_utime, archive_id);
+                    },
                 }
             }
+            iter.next();
         }
         Ok(())
     }
