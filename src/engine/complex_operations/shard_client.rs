@@ -138,6 +138,7 @@ async fn load_next_masterchain_block(
     Ok(block_id.clone())
 }
 
+#[tracing::instrument(skip_all, fields(?id=masterchain_block.id()), level = "info", err)]
 async fn load_shard_blocks(
     engine: &Arc<Engine>,
     permit: OwnedSemaphorePermit,

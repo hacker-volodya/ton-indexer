@@ -100,6 +100,7 @@ impl BlockStorage {
         Ok(manager)
     }
 
+    #[tracing::instrument(skip(self), level = "info", err)]
     fn load_archive_index_from_disk(&self) -> Result<()> {
         tracing::info!("Loading archive index from disk...");
         let mut archive_index = self.archive_index.write();
@@ -133,6 +134,7 @@ impl BlockStorage {
         Ok(())
     }
 
+    #[tracing::instrument(skip(self, info), fields(?shard=info.shard(), seqno=info.seq_no()), level = "info", err)]
     fn add_block_to_index(&self, archive_id: u32, info: &BlockInfo) -> Result<()> {
         let mut index = self.archive_index.write();
         match index.entry(*info.shard()) {
@@ -458,6 +460,7 @@ impl BlockStorage {
         self.get_data_ref(handle, &archive_id).await
     }
 
+    #[tracing::instrument(skip_all, fields(?id=handle.id()), level = "info", err)]
     pub async fn move_into_archive(&self, handle: &BlockHandle) -> Result<()> {
         if handle.meta().is_archived() {
             return Ok(());
