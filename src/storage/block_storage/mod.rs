@@ -108,7 +108,7 @@ impl BlockStorage {
         iter.seek_to_first();
         while let (Some(key), value) = (iter.key(), iter.value()) {
             let archive_id = u32::from_le_bytes(key.try_into().with_context(|| format!("Invalid archive key: {}", hex::encode(key)))?);
-            tracing::debug!("Loading archive {}", archive_id);
+            tracing::info!("Loading archive {}", archive_id);
             if let Some(mut raw_index_data) = value {
                 while let Ok(index_data) = ArchiveIndexData::deserialize(&mut raw_index_data) {
                     match archive_index.entry(index_data.shard) {
@@ -207,7 +207,7 @@ impl BlockStorage {
 
             // update archive index if necessary
             if let Some(archive_bytes) = value {
-                self.add_archive_to_index(archive_id, archive_bytes, true)?;
+                self.add_archive_to_index(archive_id, archive_bytes, false)?;
             }
 
             if let Some(Err(e)) = value.map(check_archive) {
