@@ -236,7 +236,7 @@ impl BlockStorage {
     }
 
     pub fn search_block_by_seqno(&self, shard: &ShardIdent, seqno: u32) -> Result<Option<Vec<u8>>> {
-        let archive_id = self.archive_index.read().get(shard).and_then(|shard_index| shard_index.seqno_index.get(&seqno).copied());
+        let archive_id = self.archive_index.read().get(shard).and_then(|shard_index| shard_index.find_archive_id_by_seqno(seqno));
         if let Some(archive_id) = archive_id {
             if let Some(archive) = self.get_archive(archive_id)? {
                 let mut reader = ArchivePackageViewReader::new(&archive)?;
@@ -253,7 +253,7 @@ impl BlockStorage {
     }
 
     pub fn search_block_by_utime(&self, shard: &ShardIdent, utime: u32) -> Result<Option<Vec<u8>>> {
-        let archive_id = self.archive_index.read().get(shard).and_then(|shard_index| shard_index.utime_index.get(&utime).copied());
+        let archive_id = self.archive_index.read().get(shard).and_then(|shard_index| shard_index.find_archive_id_by_utime(utime));
         if let Some(archive_id) = archive_id {
             if let Some(archive) = self.get_archive(archive_id)? {
                 let mut reader = ArchivePackageViewReader::new(&archive)?;
@@ -273,7 +273,7 @@ impl BlockStorage {
     }
 
     pub fn search_block_by_lt(&self, shard: &ShardIdent, lt: u64) -> Result<Option<Vec<u8>>> {
-        let archive_id = self.archive_index.read().get(shard).and_then(|shard_index| shard_index.lt_index.get(&lt).copied());
+        let archive_id = self.archive_index.read().get(shard).and_then(|shard_index| shard_index.find_archive_id_by_lt(lt));
         if let Some(archive_id) = archive_id {
             if let Some(archive) = self.get_archive(archive_id)? {
                 let mut reader = ArchivePackageViewReader::new(&archive)?;
