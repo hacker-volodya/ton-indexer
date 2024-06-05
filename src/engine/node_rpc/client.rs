@@ -458,7 +458,7 @@ pub enum ArchiveDownloadStatus {
     NotFound,
 }
 
-const TIMEOUT_PREPARE: u64 = 1000; // Milliseconds
+const TIMEOUT_PREPARE: u64 = 5000; // Milliseconds
 const TIMEOUT_ARCHIVE: u64 = 3000;
 
 #[derive(Debug, thiserror::Error)]
