@@ -1,13 +1,13 @@
 use bytes::Bytes;
 use tl_proto::{TlError, TlPacket, TlRead, TlResult, TlWrite};
 
-#[derive(Copy, Clone, TlWrite, TlRead)]
+#[derive(Copy, Clone, TlWrite, TlRead, Debug)]
 #[tl(boxed, id = "tonNode.externalMessageBroadcast", scheme = "scheme.tl")]
 pub struct ExternalMessageBroadcast<'tl> {
     pub data: &'tl [u8],
 }
 
-#[derive(Clone, TlRead)]
+#[derive(Clone, TlRead, Debug)]
 #[tl(boxed, id = "tonNode.blockBroadcast", scheme = "scheme.tl")]
 pub struct BlockBroadcast {
     #[tl(with = "tl_block_id")]
@@ -20,14 +20,14 @@ pub struct BlockBroadcast {
     pub data: Bytes,
 }
 
-#[derive(Clone, TlRead, TlWrite)]
+#[derive(Clone, TlRead, TlWrite, Debug)]
 #[tl(boxed, id = "tonNode.getNextBlockDescription", scheme = "scheme.tl")]
 pub struct RpcGetNextBlockDescription {
     #[tl(with = "tl_block_id")]
     pub prev_block: ton_block::BlockIdExt,
 }
 
-#[derive(Clone, TlRead, TlWrite)]
+#[derive(Clone, TlRead, TlWrite, Debug)]
 #[tl(boxed, scheme = "scheme.tl")]
 pub enum BlockDescription {
     #[tl(id = "tonNode.blockDescription")]
@@ -39,7 +39,7 @@ pub enum BlockDescription {
     Empty,
 }
 
-#[derive(Clone, TlRead, TlWrite)]
+#[derive(Clone, TlRead, TlWrite, Debug)]
 #[tl(boxed, id = "tonNode.prepareBlockProof", scheme = "scheme.tl")]
 pub struct RpcPrepareBlockProof {
     #[tl(with = "tl_block_id")]
@@ -47,7 +47,7 @@ pub struct RpcPrepareBlockProof {
     pub allow_partial: bool,
 }
 
-#[derive(Clone, TlRead, TlWrite)]
+#[derive(Clone, TlRead, TlWrite, Debug)]
 #[tl(boxed, id = "tonNode.prepareKeyBlockProof", scheme = "scheme.tl")]
 pub struct RpcPrepareKeyBlockProof {
     #[tl(with = "tl_block_id")]
@@ -55,14 +55,14 @@ pub struct RpcPrepareKeyBlockProof {
     pub allow_partial: bool,
 }
 
-#[derive(Clone, TlRead, TlWrite)]
+#[derive(Clone, TlRead, TlWrite, Debug)]
 #[tl(boxed, id = "tonNode.prepareBlock", scheme = "scheme.tl")]
 pub struct RpcPrepareBlock {
     #[tl(with = "tl_block_id")]
     pub block: ton_block::BlockIdExt,
 }
 
-#[derive(Clone, TlRead, TlWrite)]
+#[derive(Clone, TlRead, TlWrite, Debug)]
 #[tl(boxed, id = "tonNode.preparePersistentState", scheme = "scheme.tl")]
 pub struct RpcPreparePersistentState {
     #[tl(with = "tl_block_id")]
@@ -71,7 +71,7 @@ pub struct RpcPreparePersistentState {
     pub masterchain_block: ton_block::BlockIdExt,
 }
 
-#[derive(Clone, TlRead, TlWrite)]
+#[derive(Clone, TlRead, TlWrite, Debug)]
 #[tl(
     boxed,
     id = "tonNode.downloadPersistentStateSlice",
@@ -86,21 +86,21 @@ pub struct RpcDownloadPersistentStateSlice {
     pub max_size: u64,
 }
 
-#[derive(Clone, TlRead, TlWrite)]
+#[derive(Clone, TlRead, TlWrite, Debug)]
 #[tl(boxed, id = "tonNode.prepareZeroState", scheme = "scheme.tl")]
 pub struct RpcPrepareZeroState {
     #[tl(with = "tl_block_id")]
     pub block: ton_block::BlockIdExt,
 }
 
-#[derive(Clone, TlRead, TlWrite)]
+#[derive(Clone, TlRead, TlWrite, Debug)]
 #[tl(boxed, id = "tonNode.downloadZeroState", scheme = "scheme.tl")]
 pub struct RpcDownloadZeroState {
     #[tl(with = "tl_block_id")]
     pub block: ton_block::BlockIdExt,
 }
 
-#[derive(Clone, TlRead, TlWrite)]
+#[derive(Clone, TlRead, TlWrite, Debug)]
 #[tl(boxed, id = "tonNode.getNextKeyBlockIds", scheme = "scheme.tl")]
 pub struct RpcGetNextKeyBlockIds {
     #[tl(with = "tl_block_id")]
@@ -108,56 +108,56 @@ pub struct RpcGetNextKeyBlockIds {
     pub max_size: u32,
 }
 
-#[derive(Clone, TlRead, TlWrite)]
+#[derive(Clone, TlRead, TlWrite, Debug)]
 #[tl(boxed, id = "tonNode.downloadNextBlockFull", scheme = "scheme.tl")]
 pub struct RpcDownloadNextBlockFull {
     #[tl(with = "tl_block_id")]
     pub prev_block: ton_block::BlockIdExt,
 }
 
-#[derive(Clone, TlRead, TlWrite)]
+#[derive(Clone, TlRead, TlWrite, Debug)]
 #[tl(boxed, id = "tonNode.downloadBlockFull", scheme = "scheme.tl")]
 pub struct RpcDownloadBlockFull {
     #[tl(with = "tl_block_id")]
     pub block: ton_block::BlockIdExt,
 }
 
-#[derive(Clone, TlRead, TlWrite)]
+#[derive(Clone, TlRead, TlWrite, Debug)]
 #[tl(boxed, id = "tonNode.downloadBlock", scheme = "scheme.tl")]
 pub struct RpcDownloadBlock {
     #[tl(with = "tl_block_id")]
     pub block: ton_block::BlockIdExt,
 }
 
-#[derive(Clone, TlRead, TlWrite)]
+#[derive(Clone, TlRead, TlWrite, Debug)]
 #[tl(boxed, id = "tonNode.downloadBlockProof", scheme = "scheme.tl")]
 pub struct RpcDownloadBlockProof {
     #[tl(with = "tl_block_id")]
     pub block: ton_block::BlockIdExt,
 }
 
-#[derive(Clone, TlRead, TlWrite)]
+#[derive(Clone, TlRead, TlWrite, Debug)]
 #[tl(boxed, id = "tonNode.downloadKeyBlockProof", scheme = "scheme.tl")]
 pub struct RpcDownloadKeyBlockProof {
     #[tl(with = "tl_block_id")]
     pub block: ton_block::BlockIdExt,
 }
 
-#[derive(Clone, TlRead, TlWrite)]
+#[derive(Clone, TlRead, TlWrite, Debug)]
 #[tl(boxed, id = "tonNode.downloadBlockProofLink", scheme = "scheme.tl")]
 pub struct RpcDownloadBlockProofLink {
     #[tl(with = "tl_block_id")]
     pub block: ton_block::BlockIdExt,
 }
 
-#[derive(Clone, TlRead, TlWrite)]
+#[derive(Clone, TlRead, TlWrite, Debug)]
 #[tl(boxed, id = "tonNode.downloadKeyBlockProofLink", scheme = "scheme.tl")]
 pub struct RpcDownloadKeyBlockProofLink {
     #[tl(with = "tl_block_id")]
     pub block: ton_block::BlockIdExt,
 }
 
-#[derive(Clone, TlRead, TlWrite)]
+#[derive(Clone, TlRead, TlWrite, Debug)]
 #[tl(
     boxed,
     id = "tonNode.getArchiveInfo",
@@ -168,7 +168,7 @@ pub struct RpcGetArchiveInfo {
     pub masterchain_seqno: u32,
 }
 
-#[derive(Clone, TlRead, TlWrite)]
+#[derive(Clone, TlRead, TlWrite, Debug)]
 #[tl(
     boxed,
     id = "tonNode.getArchiveSlice",
@@ -181,11 +181,11 @@ pub struct RpcGetArchiveSlice {
     pub max_size: u32,
 }
 
-#[derive(TlWrite, TlRead)]
+#[derive(TlWrite, TlRead, Debug)]
 #[tl(boxed, id = "tonNode.getCapabilities", scheme = "scheme.tl")]
 pub struct RpcGetCapabilities;
 
-#[derive(Copy, Clone, Eq, PartialEq, TlRead, TlWrite)]
+#[derive(Copy, Clone, Eq, PartialEq, TlRead, TlWrite, Debug)]
 #[tl(boxed, scheme = "scheme.tl")]
 pub enum PreparedProof {
     #[tl(id = "tonNode.preparedProof")]
@@ -196,7 +196,7 @@ pub enum PreparedProof {
     Link,
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, TlRead, TlWrite)]
+#[derive(Copy, Clone, Eq, PartialEq, TlRead, TlWrite, Debug)]
 #[tl(boxed, scheme = "scheme.tl")]
 pub enum Prepared {
     #[tl(id = "tonNode.notFound")]
@@ -214,7 +214,7 @@ pub enum PreparedState {
     Found,
 }
 
-#[derive(Clone, TlRead, TlWrite)]
+#[derive(Clone, TlRead, TlWrite, Debug)]
 #[tl(boxed, scheme = "scheme.tl")]
 pub enum DataFull {
     #[tl(id = "tonNode.dataFull")]
@@ -229,7 +229,7 @@ pub enum DataFull {
     Empty,
 }
 
-#[derive(Clone, TlRead, TlWrite)]
+#[derive(Clone, TlRead, TlWrite, Debug)]
 #[tl(boxed, id = "tonNode.keyBlocks", scheme = "scheme.tl")]
 pub struct KeyBlocks {
     #[tl(with = "tl_block_id_vec")]
@@ -238,7 +238,7 @@ pub struct KeyBlocks {
     pub error: bool,
 }
 
-#[derive(Clone, TlRead, TlWrite)]
+#[derive(Clone, TlRead, TlWrite, Debug)]
 #[tl(boxed, scheme = "scheme.tl")]
 pub enum ArchiveInfo {
     #[tl(id = "tonNode.archiveInfo", size_hint = 8)]

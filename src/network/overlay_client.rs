@@ -42,6 +42,7 @@ impl OverlayClient {
             .get_peer_address(self.overlay.overlay_key().id(), neighbour.peer_id())
     }
 
+    #[tracing::instrument(skip(self, neighbour), fields(?peer=neighbour.peer_id()), level = "debug", err)]
     pub async fn send_rldp_query<Q, A>(
         &self,
         query: Q,
@@ -49,7 +50,7 @@ impl OverlayClient {
         attempt: u32,
     ) -> Result<A>
     where
-        Q: TlWrite,
+        Q: TlWrite + std::fmt::Debug,
         for<'a> A: TlRead<'a, Repr = tl_proto::Boxed> + 'static,
     {
         let (answer, neighbour, roundtrip) = self
@@ -73,6 +74,7 @@ impl OverlayClient {
         }
     }
 
+    #[tracing::instrument(skip(self, neighbour), fields(?peer=neighbour.peer_id()), level = "debug", err)]
     pub async fn send_rldp_query_raw<Q>(
         &self,
         neighbour: Arc<Neighbour>,
@@ -80,7 +82,7 @@ impl OverlayClient {
         attempt: u32,
     ) -> Result<Vec<u8>>
     where
-        Q: TlWrite,
+        Q: TlWrite + std::fmt::Debug,
     {
         let (answer, neighbour, roundtrip) = self
             .send_rldp_query_to_neighbour(neighbour, query, attempt)
@@ -89,6 +91,7 @@ impl OverlayClient {
         Ok(answer)
     }
 
+    #[tracing::instrument(skip(self, explicit_neighbour), fields(?peer=explicit_neighbour.map(|x| x.peer_id())), level = "debug", err)]
     pub async fn send_adnl_query<Q, A>(
         &self,
         query: Q,
@@ -97,7 +100,7 @@ impl OverlayClient {
         explicit_neighbour: Option<&Arc<Neighbour>>,
     ) -> Result<(A, Arc<Neighbour>)>
     where
-        Q: TlWrite,
+        Q: TlWrite + std::fmt::Debug,
         for<'a> A: TlRead<'a, Repr = tl_proto::Boxed> + 'static,
     {
         const NO_NEIGHBOURS_DELAY: u64 = 1000; // Milliseconds
@@ -147,6 +150,7 @@ impl OverlayClient {
         self.overlay.wait_for_broadcast().await
     }
 
+    #[tracing::instrument(skip(self, neighbour), fields(?peer=neighbour.peer_id()), level = "debug", err)]
     pub async fn send_adnl_query_to_neighbour<Q, A>(
         &self,
         neighbour: &Neighbour,
@@ -154,7 +158,7 @@ impl OverlayClient {
         timeout: Option<u64>,
     ) -> Result<Option<A>>
     where
-        Q: TlWrite,
+        Q: TlWrite + std::fmt::Debug,
         for<'a> A: TlRead<'a, Repr = tl_proto::Boxed> + 'static,
     {
         let adnl = self.rldp.adnl();
@@ -195,6 +199,7 @@ impl OverlayClient {
         Ok(None)
     }
 
+    #[tracing::instrument(skip(self, neighbour), fields(?peer=neighbour.peer_id()), level = "debug", err)]
     async fn send_rldp_query_to_neighbour<T>(
         &self,
         neighbour: Arc<Neighbour>,
@@ -202,7 +207,7 @@ impl OverlayClient {
         attempt: u32,
     ) -> Result<(Vec<u8>, Arc<Neighbour>, u64)>
     where
-        T: TlWrite,
+        T: TlWrite + std::fmt::Debug,
     {
         const ATTEMPT_INTERVAL: u64 = 1000; // Milliseconds
 
