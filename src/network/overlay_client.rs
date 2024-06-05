@@ -204,7 +204,7 @@ impl OverlayClient {
     where
         T: TlWrite,
     {
-        const ATTEMPT_INTERVAL: u64 = 50; // Milliseconds
+        const ATTEMPT_INTERVAL: u64 = 1000; // Milliseconds
 
         let (answer, roundtrip) = self
             .overlay
