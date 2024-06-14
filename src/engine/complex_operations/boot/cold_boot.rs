@@ -19,6 +19,7 @@ use crate::utils::*;
 /// Boot type when the node has not yet started syncing
 ///
 /// Returns last masterchain key block id
+#[tracing::instrument(level = "debug", skip_all, err)]
 pub async fn cold_boot(engine: &Arc<Engine>) -> Result<ton_block::BlockIdExt> {
     tracing::info!("starting cold boot");
 
@@ -47,6 +48,7 @@ pub async fn cold_boot(engine: &Arc<Engine>) -> Result<ton_block::BlockIdExt> {
 
 /// Searches for the last key block (or zerostate) from which
 /// we can start downloading other key blocks
+#[tracing::instrument(level = "debug", skip_all, err)]
 async fn prepare_prev_key_block(engine: &Arc<Engine>) -> Result<PrevKeyBlock> {
     let block_handle_storage = engine.storage.block_handle_storage();
     let block_storage = engine.storage.block_storage();
@@ -159,6 +161,7 @@ async fn prepare_prev_key_block(engine: &Arc<Engine>) -> Result<PrevKeyBlock> {
 }
 
 /// Downloads and saves all key blocks until now
+#[tracing::instrument(level = "debug", skip_all, err)]
 async fn download_key_blocks(engine: &Arc<Engine>, mut prev_key_block: PrevKeyBlock) -> Result<()> {
     const BLOCKS_PER_BATCH: u16 = 5;
 
@@ -323,6 +326,7 @@ impl<'a> BlockProofStream<'a> {
     }
 
     /// Waits next block proof
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn next(&mut self) -> Result<Option<(Arc<BlockHandle>, BlockProofStuff)>> {
         // Check ids range end
         let block_id = match self.ids.get(self.index) {
@@ -386,6 +390,7 @@ impl<'a> BlockProofStream<'a> {
     }
 
     /// Fills the stream with new futures
+    #[tracing::instrument(level = "debug", skip_all)]
     fn restart(&mut self) {
         // NOTE: `.enumerate()` must be before `.skip()` because the first element index
         // must be the same as `self.index` and so on
@@ -402,6 +407,7 @@ impl<'a> BlockProofStream<'a> {
 }
 
 /// Selectes the latest suitable key block with persistent state
+#[tracing::instrument(level = "debug", skip_all, err)]
 fn choose_key_block(engine: &Engine) -> Result<Arc<BlockHandle>> {
     let block_handle_storage = engine.storage.block_handle_storage();
     let mut key_blocks = block_handle_storage
@@ -470,6 +476,7 @@ impl PrevKeyBlock {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     fn check_next_proof(
         &self,
         engine: &Engine,
@@ -508,6 +515,7 @@ impl PrevKeyBlock {
     }
 }
 
+#[tracing::instrument(level = "debug", skip_all, err)]
 async fn download_workchain_zero_state(
     engine: &Arc<Engine>,
     mc_zero_state: &ShardStateStuff,
@@ -532,6 +540,7 @@ async fn download_workchain_zero_state(
     Ok(())
 }
 
+#[tracing::instrument(level = "debug", skip_all, err)]
 async fn download_start_blocks_and_states(
     engine: &Arc<Engine>,
     mc_block_id: &ton_block::BlockIdExt,
@@ -572,6 +581,7 @@ async fn download_start_blocks_and_states(
     Ok(top_blocks)
 }
 
+#[tracing::instrument(level = "debug", skip_all, err)]
 async fn download_block_with_state(
     engine: &Arc<Engine>,
     full_state_id: FullStateId,

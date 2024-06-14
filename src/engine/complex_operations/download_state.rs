@@ -20,6 +20,7 @@ const PROCESSING_QUEUE_LEN: usize = 10;
 const DOWNLOADING_QUEUE_LEN: usize = 10;
 const PACKET_SIZE: usize = 1 << 20; // 1 MB
 
+#[tracing::instrument(level = "debug", skip(engine), err)]
 pub async fn download_state(
     engine: &Arc<Engine>,
     full_state_id: FullStateId,
@@ -103,6 +104,7 @@ pub async fn download_state(
     result_rx.await?
 }
 
+#[tracing::instrument(level = "debug", skip(engine, packets_rx), err)]
 async fn background_process(
     engine: &Arc<Engine>,
     block_id: ton_block::BlockIdExt,
@@ -222,6 +224,7 @@ impl Scheduler {
         })
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn wait_next_packet(&mut self) -> Result<Option<Vec<u8>>> {
         if self.complete.load(Ordering::Acquire) {
             return Ok(None);
@@ -261,6 +264,7 @@ impl Scheduler {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn find_next_downloaded_packet(&mut self) -> Result<Option<Vec<u8>>> {
         for (worker_id, (offset, packet)) in self.pending_packets.iter_mut().enumerate() {
             if offset != &self.current_offset {

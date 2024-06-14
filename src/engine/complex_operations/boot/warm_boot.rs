@@ -8,6 +8,7 @@ use crate::utils::*;
 /// Boot type when already synced or started syncing (there are states for each workchain).
 ///
 /// Returns last masterchain key block id
+#[tracing::instrument(level = "debug", skip_all, err)]
 pub async fn warm_boot(
     engine: &Arc<Engine>,
     mut last_mc_block_id: ton_block::BlockIdExt,

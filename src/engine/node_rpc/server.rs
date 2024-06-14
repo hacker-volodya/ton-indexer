@@ -114,6 +114,7 @@ impl QueryHandler {
         self.0.storage.as_ref()
     }
 
+    #[tracing::instrument(level = "debug", skip(self), err)]
     async fn get_next_block_description(
         self,
         query: proto::RpcGetNextBlockDescription,
@@ -126,6 +127,7 @@ impl QueryHandler {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip(self), err)]
     async fn prepare_block_proof(
         self,
         query: proto::RpcPrepareBlockProof,
@@ -133,6 +135,7 @@ impl QueryHandler {
         find_block_proof(self.storage(), &query.block, query.allow_partial, false)
     }
 
+    #[tracing::instrument(level = "debug", skip(self), err)]
     async fn prepare_key_block_proof(
         self,
         query: proto::RpcPrepareKeyBlockProof,
@@ -140,6 +143,7 @@ impl QueryHandler {
         find_block_proof(self.storage(), &query.block, query.allow_partial, true)
     }
 
+    #[tracing::instrument(level = "debug", skip(self), err)]
     async fn prepare_block(self, query: proto::RpcPrepareBlock) -> Result<proto::Prepared> {
         let block_handle_storage = self.storage().block_handle_storage();
 
@@ -149,6 +153,7 @@ impl QueryHandler {
         })
     }
 
+    #[tracing::instrument(level = "debug", skip(self), err)]
     async fn prepare_persistent_state(
         self,
         query: proto::RpcPreparePersistentState,
@@ -165,6 +170,7 @@ impl QueryHandler {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip(self), err)]
     async fn download_persistent_state_part(
         self,
         query: proto::RpcDownloadPersistentStateSlice,
@@ -202,6 +208,7 @@ impl QueryHandler {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip(self), err)]
     async fn prepare_zero_state(
         self,
         _: proto::RpcPrepareZeroState,
@@ -210,6 +217,7 @@ impl QueryHandler {
         Ok(proto::PreparedState::NotFound)
     }
 
+    #[tracing::instrument(level = "debug", skip(self), err)]
     async fn get_next_key_block_ids(
         self,
         query: proto::RpcGetNextKeyBlockIds,
@@ -266,6 +274,7 @@ impl QueryHandler {
         })
     }
 
+    #[tracing::instrument(level = "debug", skip(self), err)]
     async fn download_next_block_full(
         self,
         query: proto::RpcDownloadNextBlockFull,
@@ -297,6 +306,7 @@ impl QueryHandler {
         })
     }
 
+    #[tracing::instrument(level = "debug", skip(self), err)]
     async fn download_block_full(
         self,
         query: proto::RpcDownloadBlockFull,
@@ -321,6 +331,7 @@ impl QueryHandler {
         })
     }
 
+    #[tracing::instrument(level = "debug", skip(self), err)]
     async fn download_block(self, query: proto::RpcDownloadBlock) -> Result<Vec<u8>> {
         let storage = self.storage();
         match storage.block_handle_storage().load_handle(&query.block)? {
@@ -331,10 +342,12 @@ impl QueryHandler {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip(self), err)]
     async fn download_block_proof(self, query: proto::RpcDownloadBlockProof) -> Result<Vec<u8>> {
         load_block_proof(self.storage(), &query.block, false).await
     }
 
+    #[tracing::instrument(level = "debug", skip(self), err)]
     async fn download_key_block_proof(
         self,
         query: proto::RpcDownloadKeyBlockProof,
@@ -342,6 +355,7 @@ impl QueryHandler {
         load_block_proof(self.storage(), &query.block, false).await
     }
 
+    #[tracing::instrument(level = "debug", skip(self), err)]
     async fn download_block_proof_link(
         self,
         query: proto::RpcDownloadBlockProofLink,
@@ -349,6 +363,7 @@ impl QueryHandler {
         load_block_proof(self.storage(), &query.block, true).await
     }
 
+    #[tracing::instrument(level = "debug", skip(self), err)]
     async fn download_key_block_proof_link(
         self,
         query: proto::RpcDownloadKeyBlockProofLink,
@@ -356,6 +371,7 @@ impl QueryHandler {
         load_block_proof(self.storage(), &query.block, true).await
     }
 
+    #[tracing::instrument(level = "debug", skip(self), err)]
     async fn get_archive_info(self, query: proto::RpcGetArchiveInfo) -> Result<proto::ArchiveInfo> {
         let mc_seq_no = query.masterchain_seqno;
 
@@ -376,6 +392,7 @@ impl QueryHandler {
         })
     }
 
+    #[tracing::instrument(level = "debug", skip(self), err)]
     async fn get_archive_slice(self, query: proto::RpcGetArchiveSlice) -> Result<Vec<u8>> {
         Ok(
             match self.storage().block_storage().get_archive_slice(

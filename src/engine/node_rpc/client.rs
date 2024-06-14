@@ -17,6 +17,7 @@ use crate::utils::*;
 pub struct NodeRpcClient(pub Arc<OverlayClient>);
 
 impl NodeRpcClient {
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn broadcast_external_message(&self, message: &[u8]) {
         let this = &self.0;
 
@@ -24,6 +25,7 @@ impl NodeRpcClient {
         this.broadcast(broadcast, None);
     }
 
+    #[tracing::instrument(level = "debug", skip(self), err)]
     pub async fn find_persistent_state(
         &self,
         full_state_id: &FullStateId,
@@ -67,6 +69,7 @@ impl NodeRpcClient {
         Ok(None)
     }
 
+    #[tracing::instrument(level = "debug", skip(self, neighbour), err)]
     pub async fn download_persistent_state_part(
         &self,
         full_state_id: &FullStateId,
@@ -89,6 +92,7 @@ impl NodeRpcClient {
             .await
     }
 
+    #[tracing::instrument(level = "debug", skip(self), err)]
     pub async fn download_zero_state(
         &self,
         id: &ton_block::BlockIdExt,
@@ -125,6 +129,7 @@ impl NodeRpcClient {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip(self, explicit_neighbour), err)]
     pub async fn download_block_proof(
         &self,
         block_id: &ton_block::BlockIdExt,
@@ -216,6 +221,7 @@ impl NodeRpcClient {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip(self), err)]
     pub async fn download_block_full(
         &self,
         block_id: &ton_block::BlockIdExt,
@@ -278,6 +284,7 @@ impl NodeRpcClient {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip(self), err)]
     pub async fn download_next_block_full(
         &self,
         prev_id: &ton_block::BlockIdExt,
@@ -320,6 +327,7 @@ impl NodeRpcClient {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip(self, neighbour), err)]
     pub async fn download_next_key_blocks_ids(
         &self,
         block_id: &ton_block::BlockIdExt,
@@ -344,6 +352,7 @@ impl NodeRpcClient {
             })
     }
 
+    #[tracing::instrument(level = "debug", skip(self, neighbour, output), err)]
     pub async fn download_archive(
         &self,
         masterchain_seqno: u32,

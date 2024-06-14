@@ -91,6 +91,7 @@ struct GlobalConfigIds {
 }
 
 impl Engine {
+    #[tracing::instrument(level = "debug", skip_all, err)]
     pub async fn new(
         config: NodeConfig,
         global_config: GlobalConfig,
@@ -208,6 +209,7 @@ impl Engine {
         Ok(this)
     }
 
+    #[tracing::instrument(level = "debug", skip(self), err)]
     pub async fn start(self: &Arc<Self>) -> Result<()> {
         // Start full node overlay service
         let service: Arc<NodeRpcServer> = NodeRpcServer::new(self);
@@ -765,6 +767,7 @@ impl Engine {
         });
     }
 
+    #[tracing::instrument(level = "debug", skip(self), err)]
     async fn download_zero_state(
         &self,
         block_id: &ton_block::BlockIdExt,
@@ -815,6 +818,7 @@ impl Engine {
         Ok((handle, state))
     }
 
+    #[tracing::instrument(level = "debug", skip(self), err)]
     async fn download_next_masterchain_block(
         &self,
         prev_block_id: &ton_block::BlockIdExt,
@@ -840,6 +844,7 @@ impl Engine {
         .await
     }
 
+    #[tracing::instrument(level = "debug", skip(self), err)]
     async fn download_block(
         &self,
         block_id: &ton_block::BlockIdExt,
@@ -877,6 +882,7 @@ impl Engine {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip(self, neighbour), err)]
     async fn download_block_proof(
         &self,
         block_id: &ton_block::BlockIdExt,
@@ -897,6 +903,7 @@ impl Engine {
         .await
     }
 
+    #[tracing::instrument(level = "debug", skip(self, neighbour, output), err)]
     async fn download_archive(
         &self,
         mc_block_seq_no: u32,
@@ -908,6 +915,7 @@ impl Engine {
             .await
     }
 
+    #[tracing::instrument(level = "debug", skip(self), err)]
     pub async fn load_last_key_block(&self) -> Result<BlockStuff> {
         let handle = self
             .storage
@@ -934,6 +942,7 @@ impl Engine {
 
     /// Searches for a LT for a key block with max seqno which
     /// was produced not later than the specified timestamp.
+    #[tracing::instrument(level = "debug", skip(self), err)]
     pub async fn find_closest_key_block_lt(&self, utime: u32) -> Result<u64> {
         let block_handle_storage = self.storage.block_handle_storage();
 
@@ -999,6 +1008,7 @@ impl Engine {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip(self), err)]
     async fn wait_applied_block(
         &self,
         block_id: &ton_block::BlockIdExt,
@@ -1026,6 +1036,7 @@ impl Engine {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip(self), err)]
     pub async fn wait_state(
         self: &Arc<Self>,
         block_id: &ton_block::BlockIdExt,
@@ -1072,6 +1083,7 @@ impl Engine {
         self.load_state(&self.global_config_ids.zero_state).await
     }
 
+    #[tracing::instrument(level = "debug", skip(self), err)]
     pub async fn load_state(
         &self,
         block_id: &ton_block::BlockIdExt,
@@ -1223,6 +1235,7 @@ impl Engine {
             .store(block_utime, Ordering::Release);
     }
 
+    #[tracing::instrument(level = "debug", skip(self), err)]
     async fn download_and_apply_block(
         self: &Arc<Self>,
         block_id: &ton_block::BlockIdExt,
@@ -1334,6 +1347,7 @@ impl Engine {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip(self, handle, block), err)]
     async fn apply_block_ext(
         self: &Arc<Self>,
         handle: &Arc<BlockHandle>,
@@ -1471,6 +1485,7 @@ impl Engine {
         Ok(res)
     }
 
+    #[tracing::instrument(level = "debug", skip(self), err)]
     async fn download_block_worker(
         &self,
         block_id: &ton_block::BlockIdExt,

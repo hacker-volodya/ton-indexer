@@ -14,6 +14,7 @@ mod warm_boot;
 /// Ensures that all shard states are downloaded.
 ///
 /// Returns last masterchain key block id and last shard client block id
+#[tracing::instrument(level = "debug", skip_all, err)]
 pub async fn boot(engine: &Arc<Engine>) -> Result<()> {
     tracing::info!("starting boot");
 

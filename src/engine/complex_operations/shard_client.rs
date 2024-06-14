@@ -14,6 +14,7 @@ use crate::proto;
 use crate::storage::{BlockConnection, BlockHandle};
 use crate::utils::*;
 
+#[tracing::instrument(level = "debug", skip(engine), err)]
 pub async fn walk_masterchain_blocks(
     engine: &Arc<Engine>,
     mut block_id: ton_block::BlockIdExt,
@@ -37,6 +38,7 @@ pub async fn walk_masterchain_blocks(
     Ok(())
 }
 
+#[tracing::instrument(level = "debug", skip(engine), err)]
 pub async fn walk_shard_blocks(
     engine: &Arc<Engine>,
     mc_block_id: ton_block::BlockIdExt,
@@ -67,6 +69,7 @@ pub async fn walk_shard_blocks(
     Ok(())
 }
 
+#[tracing::instrument(level = "debug", skip(engine), err)]
 async fn load_next_masterchain_block(
     engine: &Arc<Engine>,
     prev_block_id: &ton_block::BlockIdExt,
