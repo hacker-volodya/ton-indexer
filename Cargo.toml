@@ -22,7 +22,7 @@ bumpalo = "3.12"
 countme = { version = "3.0.0" }
 crc = "3.0"
 dashmap = "5.3"
-everscale-network = "0.5.0"
+everscale-network = { git = "https://github.com/broxus/everscale-network" }
 fdlimit = "0.2.1"
 futures-util = "0.3"
 hex = "0.4"
