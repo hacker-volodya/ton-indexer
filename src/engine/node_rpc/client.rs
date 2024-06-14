@@ -83,7 +83,7 @@ impl NodeRpcClient {
         let query = tl_proto::RawBytes::<tl_proto::Boxed>::new(&query);
 
         // Prepare peers set
-        const PEERS_SET_LEN: u32 = 50;
+        const PEERS_SET_LEN: u32 = 1000;
 
         let peers_set = PeersSet::with_capacity(PEERS_SET_LEN);
         this.neighbours()
