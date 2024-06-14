@@ -8,6 +8,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use anyhow::{Context, Result};
+use tl_proto::RawBytes;
 use ton_block::BlockIdExt;
 
 use crate::network::{Neighbour, OverlayClient};
@@ -102,7 +103,18 @@ impl NodeRpcClient {
                 )
                 .await?
             {
-                if let Err(e) = self.download_persistent_state_part(&FullStateId { mc_block_id: block.clone(), block_id: block.clone() }, 0, 1 << 20, neighbour.clone(), 0).await {
+                if let Err(e) = this
+                .send_adnl_query_to_neighbour::<_, tl_proto::OwnedRawBytes<tl_proto::Boxed>>(
+                    &neighbour,
+                    proto::RpcDownloadPersistentStateSlice {
+                        block: block.clone(),
+                        masterchain_block: block.clone(),
+                        offset: 0,
+                        max_size: 128,
+                    },
+                    Some(TIMEOUT_PREPARE),
+                )
+                .await {
                     tracing::error!(peer_id = %neighbour.peer_id(), "failed to download state part: {}", e);
                 } else {
                     tracing::info!(peer_id = %neighbour.peer_id(), "state part downloaded");
