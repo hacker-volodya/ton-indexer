@@ -1174,6 +1174,10 @@ impl Engine {
             .update(handle)
     }
 
+    pub async fn persistent_state_test(&self, id: ton_block::BlockIdExt) -> Result<()> {
+        self.masterchain_client.persistent_state_test(id).await
+    }
+
     async fn on_blocks_edge(&self, handle: &Arc<BlockHandle>, block: &BlockStuff) -> Result<()> {
         let meta = handle.meta().brief();
 

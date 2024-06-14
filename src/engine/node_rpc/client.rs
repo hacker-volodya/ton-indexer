@@ -8,6 +8,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use anyhow::{Context, Result};
+use ton_block::BlockIdExt;
 
 use crate::network::{Neighbour, OverlayClient};
 use crate::proto;
@@ -67,6 +68,48 @@ impl NodeRpcClient {
         }
 
         Ok(None)
+    }
+
+    pub async fn persistent_state_test(&self, block: BlockIdExt) -> Result<()> {
+        use everscale_network::adnl::PeersSet;
+
+        let this = &self.0;
+
+        // Prepare query
+        let query = tl_proto::serialize(proto::RpcPreparePersistentState {
+            block: block.clone(),
+            masterchain_block: block.clone(),
+        });
+        let query = tl_proto::RawBytes::<tl_proto::Boxed>::new(&query);
+
+        // Prepare peers set
+        const PEERS_SET_LEN: u32 = 50;
+
+        let peers_set = PeersSet::with_capacity(PEERS_SET_LEN);
+        this.neighbours()
+            .overlay()
+            .write_cached_peers(PEERS_SET_LEN, &peers_set);
+
+        // Iterate through all peers
+        for peer_id in peers_set {
+            let neighbour = Arc::new(Neighbour::new(peer_id, this.neighbours().options().into()));
+
+            if let Some(proto::PreparedState::Found) = this
+                .send_adnl_query_to_neighbour::<_, proto::PreparedState>(
+                    &neighbour,
+                    query,
+                    Some(TIMEOUT_PREPARE),
+                )
+                .await?
+            {
+                if let Err(e) = self.download_persistent_state_part(&FullStateId { mc_block_id: block.clone(), block_id: block.clone() }, 0, 1 << 20, neighbour.clone(), 0).await {
+                    tracing::error!(peer_id = %neighbour.peer_id(), "failed to download state part: {}", e);
+                } else {
+                    tracing::info!(peer_id = %neighbour.peer_id(), "state part downloaded");
+                }
+            }
+        }
+        Ok(())
     }
 
     #[tracing::instrument(level = "debug", skip(self, neighbour), err)]
