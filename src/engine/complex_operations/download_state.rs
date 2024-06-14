@@ -18,7 +18,7 @@ use crate::utils::*;
 
 const PROCESSING_QUEUE_LEN: usize = 10;
 const DOWNLOADING_QUEUE_LEN: usize = 10;
-const PACKET_SIZE: usize = 1 << 23; // 8 MB
+const PACKET_SIZE: usize = 1 << 20; // 1 MB
 
 #[tracing::instrument(level = "debug", skip(engine), err)]
 pub async fn download_state(
