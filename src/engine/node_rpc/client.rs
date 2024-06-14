@@ -93,7 +93,7 @@ impl NodeRpcClient {
         // Iterate through all peers
         for peer_id in peers_set {
             let neighbour = Arc::new(Neighbour::new(peer_id, this.neighbours().options().into()));
-
+            tracing::info!(peer_id = %neighbour.peer_id(), "checking peer...");
             if let Some(proto::PreparedState::Found) = this
                 .send_adnl_query_to_neighbour::<_, proto::PreparedState>(
                     &neighbour,
