@@ -102,6 +102,8 @@ impl NodeRpcClient {
                 )
                 .await?
             {
+                let a = this.send_rldp_query::<_, proto::PreparedState>(query, neighbour.clone(), 0).await;
+                tracing::info!(answer = ?a, "RLDP query success");
                 if let Err(e) = self.download_persistent_state_part(&FullStateId { mc_block_id: block.clone(), block_id: block.clone() }, 0, 1 << 20, neighbour.clone(), 0).await {
                     tracing::error!(peer_id = %neighbour.peer_id(), "failed to download state part: {}", e);
                 } else {
