@@ -31,14 +31,17 @@ pub struct ShardIndex {
 }
 
 impl ShardIndex {
+    #[tracing::instrument(skip(self), level = "debug")]
     pub fn find_archive_id_by_seqno(&self, seqno: u32) -> Option<u32> {
         self.seqno_index.range(..=seqno).last().map(|(_, id)| *id)
     }
 
+    #[tracing::instrument(skip(self), level = "debug")]
     pub fn find_archive_id_by_lt(&self, lt: u64) -> Option<u32> {
         self.lt_index.range(..=lt).last().map(|(_, id)| *id)
     }
 
+    #[tracing::instrument(skip(self), level = "debug")]
     pub fn find_archive_id_by_utime(&self, utime: u32) -> Option<u32> {
         self.utime_index.range(..=utime).last().map(|(_, id)| *id)
     }
@@ -100,7 +103,7 @@ impl BlockStorage {
         Ok(manager)
     }
 
-    #[tracing::instrument(skip(self), level = "info", err)]
+    #[tracing::instrument(skip(self), level = "debug", err)]
     fn load_archive_index_from_disk(&self) -> Result<()> {
         tracing::info!("Loading archive index from disk...");
         let mut archive_index = self.archive_index.write();
@@ -134,7 +137,6 @@ impl BlockStorage {
         Ok(())
     }
 
-    #[tracing::instrument(skip(self, info), fields(?shard=info.shard(), seqno=info.seq_no()), level = "info", err)]
     fn add_block_to_index(&self, archive_id: u32, info: &BlockInfo) -> Result<()> {
         let mut index = self.archive_index.write();
         match index.entry(*info.shard()) {
@@ -154,7 +156,6 @@ impl BlockStorage {
                 entry.get_mut().utime_index.insert(info.gen_utime().as_u32(), archive_id);
             },
         }
-        tracing::info!("indexed block {:?} {}", info.shard(), info.seq_no());
         Ok(())
     }
 
@@ -224,6 +225,7 @@ impl BlockStorage {
         Ok(())
     }
 
+    #[tracing::instrument(skip(self), level = "debug", err)]
     pub fn get_archive(&self, archive_id: u32) -> Result<Option<Vec<u8>>> {
         if let Some(raw_data) = self.db.archives.get(archive_id.to_be_bytes())? {
             return Ok(Some(raw_data.to_vec()))
@@ -235,6 +237,7 @@ impl BlockStorage {
         self.search_block_by_seqno(id.shard(), id.seq_no())
     }
 
+    #[tracing::instrument(skip(self), level = "debug", err)]
     pub fn search_block_by_seqno(&self, shard: &ShardIdent, seqno: u32) -> Result<Option<Vec<u8>>> {
         let archive_id = self.archive_index.read().get(shard).and_then(|shard_index| shard_index.find_archive_id_by_seqno(seqno));
         if let Some(archive_id) = archive_id {
@@ -252,6 +255,7 @@ impl BlockStorage {
         Ok(None)
     }
 
+    #[tracing::instrument(skip(self), level = "debug", err)]
     pub fn search_block_by_utime(&self, shard: &ShardIdent, utime: u32) -> Result<Option<Vec<u8>>> {
         let archive_id = self.archive_index.read().get(shard).and_then(|shard_index| shard_index.find_archive_id_by_utime(utime));
         if let Some(archive_id) = archive_id {
@@ -272,6 +276,7 @@ impl BlockStorage {
         Ok(None)
     }
 
+    #[tracing::instrument(skip(self), level = "debug", err)]
     pub fn search_block_by_lt(&self, shard: &ShardIdent, lt: u64) -> Result<Option<Vec<u8>>> {
         let archive_id = self.archive_index.read().get(shard).and_then(|shard_index| shard_index.find_archive_id_by_lt(lt));
         if let Some(archive_id) = archive_id {
@@ -460,7 +465,6 @@ impl BlockStorage {
         self.get_data_ref(handle, &archive_id).await
     }
 
-    #[tracing::instrument(skip_all, fields(?id=handle.id()), level = "info", err)]
     pub async fn move_into_archive(&self, handle: &BlockHandle) -> Result<()> {
         if handle.meta().is_archived() {
             return Ok(());
@@ -826,6 +830,7 @@ impl BlockStorage {
         self.db.package_entries.contains_key(id.to_vec())
     }
 
+    #[tracing::instrument(skip_all, fields(?block_id=handle.id()) level = "debug", err)]
     async fn get_data<I>(&self, handle: &BlockHandle, id: &PackageEntryId<I>) -> Result<Vec<u8>>
     where
         I: Borrow<ton_block::BlockIdExt> + Hash,
@@ -843,6 +848,7 @@ impl BlockStorage {
         }
     }
 
+    #[tracing::instrument(skip_all, fields(?block_id=handle.id()) level = "debug", err)]
     async fn get_data_ref<'a, I>(
         &'a self,
         handle: &'a BlockHandle,
